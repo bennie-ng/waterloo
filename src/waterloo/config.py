@@ -48,10 +48,10 @@ def openai_api_key() -> str | None:
 
 
 def initial_mode() -> str:
-    m = os.environ.get("WATERLOO_MODE", "auto").lower().strip()
+    m = os.environ.get("WATERLOO_MODE", "local").lower().strip()
     if m in {"auto", "local", "cloud"}:
         return m
-    return "auto"
+    return "local"
 
 
 def fallback_cloud_enabled() -> bool:

@@ -1,6 +1,6 @@
 # Waterloo
 
-A terminal-first personal assistant with a hybrid brain: **local** inference (Ollama) for private or offline work, and a **cloud** API (OpenAI-compatible) when you want stronger models. Conversation history and opt-in **memory notes** persist in SQLite on your machine.
+A terminal-first personal assistant with a hybrid brain: by default it uses **local** inference (Ollama). You can switch to a **cloud** API (OpenAI-compatible) when you want stronger models. Conversation history and opt-in **memory notes** persist in SQLite on your machine.
 
 ## Setup
 
@@ -35,6 +35,8 @@ Optional: `OPENAI_BASE_URL` for compatible proxies (default `https://api.openai.
 
 ## Run
 
+Default routing is **`local`** (Ollama). Use `/mode cloud` or `export WATERLOO_MODE=cloud` for the API when configured.
+
 ```bash
 waterloo
 # or
@@ -66,7 +68,7 @@ In **auto** mode, messages containing sensitive keywords (for example `password`
 | `OPENAI_MODEL` | Model name (default `gpt-4o-mini`) |
 | `WATERLOO_OLLAMA_BASE` | Ollama URL (default `http://127.0.0.1:11434`) |
 | `WATERLOO_OLLAMA_MODEL` | Ollama model name |
-| `WATERLOO_MODE` | Initial mode: `auto`, `local`, `cloud` |
+| `WATERLOO_MODE` | Initial mode: `local` (default), `auto`, or `cloud` |
 | `WATERLOO_FALLBACK_CLOUD` | If `1`, use cloud when local fails in `auto` for sensitive prompts |
 | `WATERLOO_DATA_DIR` | Override data directory |
 

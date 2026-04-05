@@ -50,11 +50,13 @@ python -m waterloo
 | `/help` | Show help |
 | `/mode local\|cloud\|auto` | Force provider or automatic routing |
 | `/health` | Check Ollama and cloud configuration |
+| `/read <path>` | Read a UTF-8 file under `WATERLOO_TOOL_ROOT` (see tools below) |
+| `/run <command>` | Run one allowlisted command (prompts unless auto-approved) |
 | `/remember <text>` | Store an opt-in long-term memory note |
 | `/forget <id>` | Delete a memory note by id |
 | `/memories` | List stored notes |
 | `/clear` | Clear messages in the current conversation (not memory notes) |
-| `/export` | Print path to SQLite database |
+| `/export` | Print paths to SQLite database and tool root |
 | `/quit` | Exit |
 
 In **auto** mode, messages containing sensitive keywords (for example `password`, `api key`) are routed to the local model when available.
@@ -71,6 +73,17 @@ In **auto** mode, messages containing sensitive keywords (for example `password`
 | `WATERLOO_MODE` | Initial mode: `local` (default), `auto`, or `cloud` |
 | `WATERLOO_FALLBACK_CLOUD` | If `1`, use cloud when local fails in `auto` for sensitive prompts |
 | `WATERLOO_DATA_DIR` | Override data directory |
+| `WATERLOO_TOOL_ROOT` | Directory boundary for `/read` paths and working directory for `/run` (default: `$HOME`) |
+| `WATERLOO_MAX_READ_BYTES` | Max bytes for `/read` (default `262144`) |
+| `WATERLOO_ALLOW_COMMANDS` | Comma-separated list of allowed command **first tokens** for `/run` (default: `git,ls,pwd,which,echo,wc,head`) |
+| `WATERLOO_TOOLS_LOCAL_ONLY` | If `1` (default), `/read` and `/run` only when `/mode local` |
+| `WATERLOO_AUTO_APPROVE_TOOLS` | If `1`, skip the confirmation prompt before `/run` |
+
+## Phase 2 tools (guarded)
+
+- **`/read`**: resolves the path to stay under `WATERLOO_TOOL_ROOT`, then reads a UTF-8 file up to `WATERLOO_MAX_READ_BYTES`.
+- **`/run`**: runs a single argv via `subprocess` with **no shell** (`shell=False`). The first token after parsing must be in `WATERLOO_ALLOW_COMMANDS`. You get a **y/n** prompt unless `WATERLOO_AUTO_APPROVE_TOOLS=1`.
+- With **`WATERLOO_TOOLS_LOCAL_ONLY=1`** (default), tools are disabled in `cloud` and `auto` modes so chat can use the API without accidental local execution. Use `/mode local` for tools, or set `WATERLOO_TOOLS_LOCAL_ONLY=0` if you accept that risk.
 
 ## Data location
 
@@ -79,11 +92,11 @@ In **auto** mode, messages containing sensitive keywords (for example `password`
 
 Database file: `waterloo.db`. Log lines passed through redaction should not print raw API keys; pasted secrets in chat may still be sent to the configured provider.
 
-## Threat model (v1)
+## Threat model
 
 - This CLI can send your prompts to **local Ollama** and/or **OpenAI** depending on mode and routing.
 - Long-term **memory** is only what you add with `/remember`.
-- No built-in tools (shell, filesystem) in v1.
+- **`/read` and `/run`** only access or execute what you allow: path sandbox under `WATERLOO_TOOL_ROOT`, allowlisted command prefixes, and (by default) **local mode only**. Misconfiguration or setting `WATERLOO_TOOLS_LOCAL_ONLY=0` can widen exposure.
 
 ## Development
 

@@ -24,6 +24,7 @@ from waterloo.memory import (
 )
 from waterloo.providers import ChatProvider, OllamaProvider, OpenAICompatibleProvider
 from waterloo.router import Mode, decide_route
+from waterloo import tools as toolsvc
 
 log = logging.getLogger("waterloo")
 
@@ -120,6 +121,8 @@ def run_repl() -> int:
                     "[bold]Commands[/bold]\n"
                     "/mode local|cloud|auto — routing\n"
                     "/health — providers\n"
+                    "/read <path> — read a UTF-8 file under WATERLOO_TOOL_ROOT\n"
+                    "/run <command> — run allowlisted command (confirm unless WATERLOO_AUTO_APPROVE_TOOLS=1)\n"
                     "/remember <text> — save a note\n"
                     "/memories — list notes\n"
                     "/forget <id> — delete note\n"
@@ -179,6 +182,68 @@ def run_repl() -> int:
 
             if cmd == "/export":
                 console.print(f"SQLite database: {dbp}")
+                console.print(f"Tool root (read/run cwd): {toolsvc.tool_root()}")
+                continue
+
+            if cmd == "/read":
+                if not toolsvc.tools_permitted_for_mode(
+                    mode, tools_local_only=cfg.tools_local_only()
+                ):
+                    console.print(
+                        "[red]Tools need /mode local "
+                        "(or set WATERLOO_TOOLS_LOCAL_ONLY=0).[/red]"
+                    )
+                    continue
+                if not arg.strip():
+                    console.print("Usage: /read <path>")
+                    continue
+                root = toolsvc.tool_root()
+                try:
+                    path = toolsvc.resolve_path_under_root(arg.strip(), root)
+                    text = toolsvc.read_text_file(
+                        path, max_bytes=toolsvc.max_read_bytes()
+                    )
+                except toolsvc.ToolError as e:
+                    console.print(f"[red]{e}[/red]")
+                    continue
+                console.print(Panel(text, title=str(path), border_style="blue"))
+                continue
+
+            if cmd == "/run":
+                if not toolsvc.tools_permitted_for_mode(
+                    mode, tools_local_only=cfg.tools_local_only()
+                ):
+                    console.print(
+                        "[red]Tools need /mode local "
+                        "(or set WATERLOO_TOOLS_LOCAL_ONLY=0).[/red]"
+                    )
+                    continue
+                if not arg.strip():
+                    console.print("Usage: /run <command>")
+                    continue
+                command = arg.strip()
+                allowed = toolsvc.default_allowed_first_tokens()
+                if not cfg.auto_approve_tools():
+                    ans = console.input(
+                        f"Run [cyan]{command}[/cyan] under {toolsvc.tool_root()}? [y/N]: "
+                    ).strip().lower()
+                    if ans not in {"y", "yes"}:
+                        console.print("Cancelled.")
+                        continue
+                root = toolsvc.tool_root()
+                try:
+                    code, out, err = toolsvc.run_allowlisted_command(
+                        command, cwd=root, allowed=allowed
+                    )
+                except toolsvc.ToolError as e:
+                    console.print(f"[red]{e}[/red]")
+                    continue
+                parts = [f"[bold]exit {code}[/bold]"]
+                if out:
+                    parts.append(out.rstrip())
+                if err:
+                    parts.append(f"[yellow]{err.rstrip()}[/yellow]")
+                console.print(Panel("\n\n".join(parts), title="/run", border_style="magenta"))
                 continue
 
             console.print(f"Unknown command: {cmd}. Try /help")

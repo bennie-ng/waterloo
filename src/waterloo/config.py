@@ -56,3 +56,13 @@ def initial_mode() -> str:
 
 def fallback_cloud_enabled() -> bool:
     return os.environ.get("WATERLOO_FALLBACK_CLOUD", "0").strip() in {"1", "true", "yes"}
+
+
+def tools_local_only() -> bool:
+    """When True, /read and /run are only available in local routing mode."""
+    return os.environ.get("WATERLOO_TOOLS_LOCAL_ONLY", "1").strip() in {"1", "true", "yes"}
+
+
+def auto_approve_tools() -> bool:
+    """When True, skip the y/n prompt before /run."""
+    return os.environ.get("WATERLOO_AUTO_APPROVE_TOOLS", "0").strip() in {"1", "true", "yes"}

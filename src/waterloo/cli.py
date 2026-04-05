@@ -16,7 +16,6 @@ from waterloo.memory import (
     append_message,
     clear_messages,
     connect,
-    db_path,
     delete_memory_note,
     init_schema,
     list_memory_notes,
@@ -73,7 +72,7 @@ def run_repl() -> int:
     console = Console(highlight=False)
 
     data_dir = cfg.data_dir()
-    dbp = db_path()
+    dbp = cfg.db_path()
     conn = connect(dbp)
     init_schema(conn)
 

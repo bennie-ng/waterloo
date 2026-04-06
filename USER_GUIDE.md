@@ -97,6 +97,15 @@ Shortcuts: `/exit` and `/q` also quit.
 
 ---
 
+## Model-driven tools (LLM tool loop)
+
+When you are in **`/mode local`** (and tools are not restricted by `WATERLOO_TOOLS_LOCAL_ONLY`), Waterloo sends tool definitions to the model so it can **`read_file`** and **`run_command`** on its own, using the **same rules** as the **`/read`** and **`/run`** slash commands (sandbox, allowlist, confirmations).
+
+- A dim **`tool read_file`** or **`tool run_command`** line may appear when a tool runs.
+- Set **`WATERLOO_LLM_TOOLS=0`** if you want **chat only** with no automatic tool use.
+- **`WATERLOO_AGENT_MAX_STEPS`** caps how many tool rounds can happen per message (default **8**).
+- The saved chat history shows **final replies**, not every tool step.
+
 ## Workspace and tools (`/read` and `/run`)
 
 Waterloo can **read files** and **run a small set of shell commands**, but only inside a **sandbox folder** so you stay in control.
@@ -164,6 +173,8 @@ These environment variables are read when Waterloo starts. Use your shell profil
 | `WATERLOO_AUTO_APPROVE_TOOLS` | If `1`, skip confirmation before `/run` |
 | `WATERLOO_ICAL_PATH` / `WATERLOO_ICAL_URL` | Calendar `.ics` source for `/calendar` |
 | `WATERLOO_FALLBACK_CLOUD` | In `auto`, whether to use cloud when local is unavailable for sensitive prompts |
+| `WATERLOO_LLM_TOOLS` | Set `0` to disable model-driven `read_file` / `run_command` |
+| `WATERLOO_AGENT_MAX_STEPS` | Max tool rounds per message (default `8`) |
 
 ---
 

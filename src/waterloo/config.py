@@ -68,6 +68,19 @@ def auto_approve_tools() -> bool:
     return os.environ.get("WATERLOO_AUTO_APPROVE_TOOLS", "0").strip() in {"1", "true", "yes"}
 
 
+def llm_tools_enabled() -> bool:
+    """When False, LLM tool loop is disabled (plain chat only). Default on."""
+    v = os.environ.get("WATERLOO_LLM_TOOLS", "1").strip().lower()
+    return v not in {"0", "false", "no", "off"}
+
+
+def agent_max_steps() -> int:
+    try:
+        return max(1, int(os.environ.get("WATERLOO_AGENT_MAX_STEPS", "8")))
+    except ValueError:
+        return 8
+
+
 def ical_path() -> str | None:
     p = os.environ.get("WATERLOO_ICAL_PATH", "").strip()
     return p if p else None

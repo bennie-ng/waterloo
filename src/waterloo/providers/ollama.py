@@ -8,6 +8,8 @@ from typing import Any
 import httpx
 
 from waterloo.providers.base import ChatProvider
+from waterloo.providers.parse import result_from_ollama_message
+from waterloo.providers.types import ChatTurnResult
 
 
 class OllamaProvider(ChatProvider):
@@ -22,20 +24,31 @@ class OllamaProvider(ChatProvider):
     def base_url(self) -> str:
         return self._base
 
-    def complete(self, messages: list[dict[str, str]], *, model: str | None = None) -> str:
+    def chat_with_tools(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        tools: list[dict[str, Any]] | None,
+        model: str | None = None,
+    ) -> ChatTurnResult:
         m = model or self._default_model
         payload: dict[str, Any] = {
             "model": m,
             "messages": messages,
             "stream": False,
         }
+        if tools:
+            payload["tools"] = tools
         url = f"{self._base}/api/chat"
         with httpx.Client(timeout=self._timeout) as client:
             r = client.post(url, json=payload)
             r.raise_for_status()
             data = r.json()
         msg = data.get("message") or {}
-        content = msg.get("content")
-        if content is None:
-            return json.dumps(data)[:2000]
-        return str(content)
+        if not msg.get("content") and not msg.get("tool_calls"):
+            content = json.dumps(data)[:2000]
+            return ChatTurnResult(
+                message={"role": "assistant", "content": content},
+                tool_calls=(),
+            )
+        return result_from_ollama_message(msg)

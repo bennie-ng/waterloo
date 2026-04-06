@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -22,6 +23,7 @@ from waterloo.memory import (
     load_messages,
     recall_notes_for_query,
 )
+from waterloo.agent_loop import run_agent_turn
 from waterloo.providers import ChatProvider, OllamaProvider, OpenAICompatibleProvider
 from waterloo.router import Mode, decide_route
 from waterloo import tools as toolsvc
@@ -135,6 +137,7 @@ def run_repl() -> int:
                     "/mail — mail connector status (stub)\n"
                     "/read <path> — read a UTF-8 file under ~/waterloo-ws (or WATERLOO_TOOL_ROOT)\n"
                     "/run <command> — run allowlisted command (confirm unless WATERLOO_AUTO_APPROVE_TOOLS=1)\n"
+                    "LLM tools: in local mode the model may request read_file/run_command (WATERLOO_LLM_TOOLS=0 to disable)\n"
                     "/remember <text> — save a note\n"
                     "/memories — list notes\n"
                     "/forget <id> — delete note\n"
@@ -307,14 +310,36 @@ def run_repl() -> int:
         system_content = build_system_content(recalled)
 
         history = load_messages(conn, conversation_id)
-        messages: list[dict[str, str]] = [{"role": "system", "content": system_content}]
+        messages: list[dict[str, Any]] = [
+            {"role": "system", "content": system_content}
+        ]
         messages.extend(history)
         messages.append({"role": "user", "content": user_text})
 
         append_message(conn, conversation_id, "user", user_text)
 
+        use_llm_tools = cfg.llm_tools_enabled() and toolsvc.tools_permitted_for_mode(
+            mode, tools_local_only=cfg.tools_local_only()
+        )
+
+        def _confirm_run(cmd: str) -> bool:
+            if cfg.auto_approve_tools():
+                return True
+            ans = console.input(
+                f"LLM requested run [cyan]{cmd}[/cyan] under {toolsvc.tool_root()}? [y/N]: "
+            ).strip().lower()
+            return ans in {"y", "yes"}
+
         try:
-            reply = provider.complete(messages, model=model_name)
+            reply = run_agent_turn(
+                provider,
+                messages,
+                model=model_name,
+                use_tools=use_llm_tools,
+                max_steps=cfg.agent_max_steps(),
+                confirm_run=_confirm_run,
+                on_tool_event=lambda n, _p: console.print(f"[dim]tool {n}[/dim]"),
+            )
         except Exception as e:
             err = redact_secrets(str(e))
             log.info("Completion failed: %s", err)

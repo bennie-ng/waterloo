@@ -8,6 +8,8 @@ from typing import Any
 import httpx
 
 from waterloo.providers.base import ChatProvider
+from waterloo.providers.parse import result_from_openai_message
+from waterloo.providers.types import ChatTurnResult
 
 
 class OpenAICompatibleProvider(ChatProvider):
@@ -25,13 +27,22 @@ class OpenAICompatibleProvider(ChatProvider):
         self._default_model = default_model
         self._timeout = timeout
 
-    def complete(self, messages: list[dict[str, str]], *, model: str | None = None) -> str:
+    def chat_with_tools(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        tools: list[dict[str, Any]] | None,
+        model: str | None = None,
+    ) -> ChatTurnResult:
         m = model or self._default_model
         url = f"{self._base}/chat/completions"
         payload: dict[str, Any] = {
             "model": m,
             "messages": messages,
         }
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = "auto"
         headers = {
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
@@ -42,9 +53,9 @@ class OpenAICompatibleProvider(ChatProvider):
             data = r.json()
         choices = data.get("choices") or []
         if not choices:
-            return json.dumps(data)[:2000]
+            return ChatTurnResult(
+                message={"role": "assistant", "content": json.dumps(data)[:2000]},
+                tool_calls=(),
+            )
         msg = choices[0].get("message") or {}
-        content = msg.get("content")
-        if content is None:
-            return json.dumps(data)[:2000]
-        return str(content)
+        return result_from_openai_message(msg)

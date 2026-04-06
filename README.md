@@ -79,7 +79,9 @@ In **auto** mode, messages containing sensitive keywords (for example `password`
 | `WATERLOO_MAX_READ_BYTES` | Max bytes for `/read` (default `262144`) |
 | `WATERLOO_ALLOW_COMMANDS` | Comma-separated list of allowed command **first tokens** for `/run` (default: `git,ls,pwd,which,echo,wc,head`) |
 | `WATERLOO_TOOLS_LOCAL_ONLY` | If `1` (default), `/read` and `/run` only when `/mode local` |
-| `WATERLOO_AUTO_APPROVE_TOOLS` | If `1`, skip the confirmation prompt before `/run` |
+| `WATERLOO_AUTO_APPROVE_TOOLS` | If `1`, skip the confirmation prompt before `/run` and LLM-requested runs |
+| `WATERLOO_LLM_TOOLS` | If `0`, disable LLM tool loop (`read_file` / `run_command` from the model); default on when slash tools are allowed |
+| `WATERLOO_AGENT_MAX_STEPS` | Max back-and-forth tool rounds per chat message (default `8`) |
 | `WATERLOO_ICAL_PATH` | Path to a local iCalendar `.ics` file (optional; alternative to URL) |
 | `WATERLOO_ICAL_URL` | HTTPS URL to fetch an `.ics` feed (optional; `https://` only) |
 | `WATERLOO_ICAL_TIMEOUT` | HTTP timeout seconds for `WATERLOO_ICAL_URL` (default `30`) |
@@ -99,6 +101,10 @@ Default workspace folder for `/read` and `/run` is **`~/waterloo-ws`** (unless y
 - **`/read`**: resolves the path to stay under `WATERLOO_TOOL_ROOT`, then reads a UTF-8 file up to `WATERLOO_MAX_READ_BYTES`.
 - **`/run`**: runs a single argv via `subprocess` with **no shell** (`shell=False`). The first token after parsing must be in `WATERLOO_ALLOW_COMMANDS`. You get a **y/n** prompt unless `WATERLOO_AUTO_APPROVE_TOOLS=1`.
 - With **`WATERLOO_TOOLS_LOCAL_ONLY=1`** (default), tools are disabled in `cloud` and `auto` modes so chat can use the API without accidental local execution. Use `/mode local` for tools, or set `WATERLOO_TOOLS_LOCAL_ONLY=0` if you accept that risk.
+
+### LLM tool loop
+
+When **`WATERLOO_LLM_TOOLS`** is not disabled and slash tools are permitted for the current mode, the model may request **`read_file`** and **`run_command`** using the same sandbox and allowlists as **`/read`** and **`/run`**. Confirmation for runs matches slash behavior unless **`WATERLOO_AUTO_APPROVE_TOOLS=1`**. Only the **final** assistant reply text is stored in SQLite; intermediate tool steps are not persisted. Set **`WATERLOO_LLM_TOOLS=0`** for plain chat only.
 
 ## Data location
 

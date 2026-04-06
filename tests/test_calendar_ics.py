@@ -61,6 +61,26 @@ def test_given_ics_file_when_connector_fetch_summary_then_shows_title(monkeypatc
     assert "FileEvent" in out
 
 
+def test_given_default_workspace_calendar_when_no_ical_env_then_configured_and_summary(
+    monkeypatch, tmp_path
+):
+    """Given calendar.ics under ~/.waterloo/ical with no WATERLOO_ICAL_* env, when fetch, then event shows."""
+    now = datetime.now(timezone.utc)
+    ev = now + timedelta(days=5)
+    data = _ics_with_event_at(ev, "WorkspaceDefault")
+    ical_dir = tmp_path / ".waterloo" / "ical"
+    ical_dir.mkdir(parents=True)
+    (ical_dir / "calendar.ics").write_bytes(data)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("WATERLOO_WORKSPACE", raising=False)
+    monkeypatch.delenv("WATERLOO_ICAL_PATH", raising=False)
+    monkeypatch.delenv("WATERLOO_ICAL_URL", raising=False)
+    c = IcsCalendarConnector()
+    assert c.is_configured() is True
+    out = c.fetch_summary()
+    assert "WorkspaceDefault" in out
+
+
 def test_given_mail_stub_when_fetch_summary_then_not_configured():
     m = MailStubConnector()
     assert m.is_configured() is False

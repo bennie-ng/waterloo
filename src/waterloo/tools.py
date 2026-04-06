@@ -7,21 +7,16 @@ import shlex
 import subprocess
 from pathlib import Path
 
+from waterloo import config as cfg
+
 
 class ToolError(Exception):
     """User-facing tool failure."""
 
 
-_DEFAULT_WORKSPACE_DIRNAME = "waterloo-ws"
-
-
 def tool_root() -> Path:
-    raw = os.environ.get("WATERLOO_TOOL_ROOT", "").strip()
-    if raw:
-        return Path(raw).expanduser().resolve()
-    root = (Path.home() / _DEFAULT_WORKSPACE_DIRNAME).resolve()
-    root.mkdir(parents=True, exist_ok=True)
-    return root
+    """Directory boundary for /read and cwd for /run (see config.tool_root)."""
+    return cfg.tool_root()
 
 
 def max_read_bytes() -> int:

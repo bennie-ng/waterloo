@@ -31,8 +31,11 @@ def test_given_openai_message_with_tool_calls_when_parse_then_normalized():
 
 def test_given_home_with_file_when_dispatch_read_then_content(monkeypatch, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
-    (tmp_path / "waterloo-ws").mkdir()
-    (tmp_path / "waterloo-ws" / "note.txt").write_text("alpha", encoding="utf-8")
+    monkeypatch.delenv("WATERLOO_WORKSPACE", raising=False)
+    monkeypatch.delenv("WATERLOO_TOOL_ROOT", raising=False)
+    sandbox = tmp_path / ".waterloo" / "sandbox"
+    sandbox.mkdir(parents=True)
+    (sandbox / "note.txt").write_text("alpha", encoding="utf-8")
     out = dispatch_tool(
         "read_file",
         '{"path": "note.txt"}',
@@ -43,7 +46,9 @@ def test_given_home_with_file_when_dispatch_read_then_content(monkeypatch, tmp_p
 
 def test_given_run_echo_when_dispatch_then_output(monkeypatch, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
-    (tmp_path / "waterloo-ws").mkdir()
+    monkeypatch.delenv("WATERLOO_WORKSPACE", raising=False)
+    monkeypatch.delenv("WATERLOO_TOOL_ROOT", raising=False)
+    (tmp_path / ".waterloo" / "sandbox").mkdir(parents=True)
     monkeypatch.setenv("WATERLOO_AUTO_APPROVE_TOOLS", "1")
     out = dispatch_tool(
         "run_command",
@@ -75,8 +80,11 @@ class _SeqProvider(ChatProvider):
 
 def test_given_tool_then_text_when_agent_loop_then_final_string(monkeypatch, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
-    (tmp_path / "waterloo-ws").mkdir()
-    (tmp_path / "waterloo-ws" / "x.txt").write_text("hello", encoding="utf-8")
+    monkeypatch.delenv("WATERLOO_WORKSPACE", raising=False)
+    monkeypatch.delenv("WATERLOO_TOOL_ROOT", raising=False)
+    sandbox = tmp_path / ".waterloo" / "sandbox"
+    sandbox.mkdir(parents=True)
+    (sandbox / "x.txt").write_text("hello", encoding="utf-8")
     monkeypatch.setenv("WATERLOO_AUTO_APPROVE_TOOLS", "1")
     tc = NormalizedToolCall(id="call_1", name="read_file", arguments='{"path":"x.txt"}')
     r1 = ChatTurnResult(
@@ -149,7 +157,9 @@ class _LoopyProvider(ChatProvider):
 
 def test_given_repeated_tools_when_max_steps_then_stops(monkeypatch, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
-    (tmp_path / "waterloo-ws").mkdir()
+    monkeypatch.delenv("WATERLOO_WORKSPACE", raising=False)
+    monkeypatch.delenv("WATERLOO_TOOL_ROOT", raising=False)
+    (tmp_path / ".waterloo" / "sandbox").mkdir(parents=True)
     monkeypatch.setenv("WATERLOO_AUTO_APPROVE_TOOLS", "1")
     out = run_agent_turn(
         _LoopyProvider(),

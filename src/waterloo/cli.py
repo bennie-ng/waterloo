@@ -68,8 +68,12 @@ def _check_cloud(key: str | None) -> tuple[bool, str]:
 
 def _check_calendar() -> tuple[bool, str]:
     if _calendar_connector.is_configured():
-        return True, "ICS calendar configured (path or URL)"
-    return False, "ICS calendar not configured (WATERLOO_ICAL_PATH / WATERLOO_ICAL_URL)"
+        return True, "ICS calendar configured (file or URL)"
+    default_ics = cfg.workspace_root() / "ical" / "calendar.ics"
+    return (
+        False,
+        f"ICS not configured (optional: {default_ics} or WATERLOO_ICAL_URL)",
+    )
 
 
 def build_system_content(memory_snippets: list[str]) -> str:
@@ -102,9 +106,13 @@ def run_repl() -> int:
     mode: Mode = cfg.initial_mode()  # type: ignore[assignment]
     fallback = cfg.fallback_cloud_enabled()
 
+    ws = cfg.workspace_root()
     console.print(
         Panel.fit(
-            f"[bold]Waterloo[/bold] {__version__}\nData: {dbp}\nMode: {mode} (/mode to change)",
+            f"[bold]Waterloo[/bold] {__version__}\n"
+            f"Workspace: {ws}\n"
+            f"Data: {dbp}\n"
+            f"Mode: {mode} (/mode to change)",
             title="Ready",
         )
     )
@@ -135,14 +143,14 @@ def run_repl() -> int:
                     "/health — providers and connectors\n"
                     "/calendar — upcoming events from ICS (see README)\n"
                     "/mail — mail connector status (stub)\n"
-                    "/read <path> — read a UTF-8 file under ~/waterloo-ws (or WATERLOO_TOOL_ROOT)\n"
+                    "/read <path> — read a UTF-8 file under <workspace>/sandbox (or WATERLOO_TOOL_ROOT)\n"
                     "/run <command> — run allowlisted command (confirm unless WATERLOO_AUTO_APPROVE_TOOLS=1)\n"
                     "LLM tools: in local mode the model may request read_file/run_command (WATERLOO_LLM_TOOLS=0 to disable)\n"
                     "/remember <text> — save a note\n"
                     "/memories — list notes\n"
                     "/forget <id> — delete note\n"
                     "/clear — clear this chat transcript\n"
-                    "/export — show DB path\n"
+                    "/export — show workspace, DB, and tool paths\n"
                     "/quit — exit"
                 )
                 continue
@@ -210,6 +218,7 @@ def run_repl() -> int:
                 continue
 
             if cmd == "/export":
+                console.print(f"Workspace: {cfg.workspace_root()}")
                 console.print(f"SQLite database: {dbp}")
                 console.print(f"Tool root (read/run cwd): {toolsvc.tool_root()}")
                 continue

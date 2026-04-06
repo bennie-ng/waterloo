@@ -58,7 +58,7 @@ python -m waterloo
 | `/forget <id>` | Delete a memory note by id |
 | `/memories` | List stored notes |
 | `/clear` | Clear messages in the current conversation (not memory notes) |
-| `/export` | Print paths to SQLite database and tool root |
+| `/export` | Print workspace, SQLite database, and tool sandbox paths |
 | `/quit` | Exit |
 
 In **auto** mode, messages containing sensitive keywords (for example `password`, `api key`) are routed to the local model when available.
@@ -74,21 +74,22 @@ In **auto** mode, messages containing sensitive keywords (for example `password`
 | `WATERLOO_OLLAMA_MODEL` | Ollama model name |
 | `WATERLOO_MODE` | Initial mode: `local` (default), `auto`, or `cloud` |
 | `WATERLOO_FALLBACK_CLOUD` | If `1`, use cloud when local fails in `auto` for sensitive prompts |
-| `WATERLOO_DATA_DIR` | Override data directory |
-| `WATERLOO_TOOL_ROOT` | Directory boundary for `/read` paths and working directory for `/run` (default: `~/waterloo-ws`, created if missing) |
+| `WATERLOO_WORKSPACE` | Root folder for defaults (default `~/.waterloo`); contains `data/`, `sandbox/`, `ical/` |
+| `WATERLOO_DATA_DIR` | Override SQLite directory (default: `<workspace>/data`) |
+| `WATERLOO_TOOL_ROOT` | Override tool sandbox for `/read` and `/run` cwd (default: `<workspace>/sandbox`) |
 | `WATERLOO_MAX_READ_BYTES` | Max bytes for `/read` (default `262144`) |
 | `WATERLOO_ALLOW_COMMANDS` | Comma-separated list of allowed command **first tokens** for `/run` (default: `git,ls,pwd,which,echo,wc,head`) |
 | `WATERLOO_TOOLS_LOCAL_ONLY` | If `1` (default), `/read` and `/run` only when `/mode local` |
 | `WATERLOO_AUTO_APPROVE_TOOLS` | If `1`, skip the confirmation prompt before `/run` and LLM-requested runs |
 | `WATERLOO_LLM_TOOLS` | If `0`, disable LLM tool loop (`read_file` / `run_command` from the model); default on when slash tools are allowed |
 | `WATERLOO_AGENT_MAX_STEPS` | Max back-and-forth tool rounds per chat message (default `8`) |
-| `WATERLOO_ICAL_PATH` | Path to a local iCalendar `.ics` file (optional; alternative to URL) |
+| `WATERLOO_ICAL_PATH` | Path to a local `.ics` file (optional; overrides default `<workspace>/ical/calendar.ics`) |
 | `WATERLOO_ICAL_URL` | HTTPS URL to fetch an `.ics` feed (optional; `https://` only) |
 | `WATERLOO_ICAL_TIMEOUT` | HTTP timeout seconds for `WATERLOO_ICAL_URL` (default `30`) |
 
 ## Context connectors
 
-Read-only **calendar** via **ICS**: set `WATERLOO_ICAL_PATH` or `WATERLOO_ICAL_URL`, then use `/calendar`. Shows non-recurring `VEVENT`s in the next **14 days** (up to **20** events). Events with `RRULE` are skipped until recurrence support is added.
+Read-only **calendar** via **ICS**: use `WATERLOO_ICAL_URL`, set `WATERLOO_ICAL_PATH`, or place `calendar.ics` under `<workspace>/ical/`, then use `/calendar`. Shows non-recurring `VEVENT`s in the next **14 days** (up to **20** events). Events with `RRULE` are skipped until recurrence support is added.
 
 **Privacy:** subscription URLs often contain secret tokens. Do not commit them; prefer environment variables or a local shell export.
 
@@ -96,7 +97,7 @@ Read-only **calendar** via **ICS**: set `WATERLOO_ICAL_PATH` or `WATERLOO_ICAL_U
 
 ## Phase 2 tools (guarded)
 
-Default workspace folder for `/read` and `/run` is **`~/waterloo-ws`** (unless you set `WATERLOO_TOOL_ROOT`). The app creates that directory on demand if it does not exist.
+Default tool sandbox is **`<workspace>/sandbox`** (default workspace `~/.waterloo`, unless you set `WATERLOO_WORKSPACE` or `WATERLOO_TOOL_ROOT`). Directories are created on demand.
 
 - **`/read`**: resolves the path to stay under `WATERLOO_TOOL_ROOT`, then reads a UTF-8 file up to `WATERLOO_MAX_READ_BYTES`.
 - **`/run`**: runs a single argv via `subprocess` with **no shell** (`shell=False`). The first token after parsing must be in `WATERLOO_ALLOW_COMMANDS`. You get a **y/n** prompt unless `WATERLOO_AUTO_APPROVE_TOOLS=1`.
@@ -108,10 +109,17 @@ When **`WATERLOO_LLM_TOOLS`** is not disabled and slash tools are permitted for 
 
 ## Data location
 
-- **macOS**: `~/Library/Application Support/waterloo/`
-- **Linux**: `~/.local/share/waterloo/`
+By default, everything lives under **`WATERLOO_WORKSPACE`** (`~/.waterloo` if unset):
 
-Database file: `waterloo.db`. Log lines passed through redaction should not print raw API keys; pasted secrets in chat may still be sent to the configured provider.
+- **SQLite:** `<workspace>/data/waterloo.db`
+- **Tool sandbox:** `<workspace>/sandbox/`
+- **Calendar (optional):** `<workspace>/ical/calendar.ics` if you add that file
+
+Override individual paths with `WATERLOO_DATA_DIR`, `WATERLOO_TOOL_ROOT`, or `WATERLOO_ICAL_PATH` as needed.
+
+**Migration:** Older releases used `~/Library/Application Support/waterloo/` (macOS) or `~/.local/share/waterloo/` for data and `~/waterloo-ws` for tools. Copy `waterloo.db` into `<workspace>/data/` or set `WATERLOO_DATA_DIR` to the old folder. If you previously used the default workspace at `~/waterloo`, move or symlink it to `~/.waterloo` or set `WATERLOO_WORKSPACE` to the old path.
+
+Log lines passed through redaction should not print raw API keys; pasted secrets in chat may still be sent to the configured provider.
 
 ## Threat model
 

@@ -85,7 +85,7 @@ def format_events_lines(events: list[tuple[datetime, str, bool]]) -> str:
 
 
 class IcsCalendarConnector(ContextConnector):
-    """Load ICS from WATERLOO_ICAL_PATH or WATERLOO_ICAL_URL."""
+    """Load ICS from env path, default workspace file, or WATERLOO_ICAL_URL."""
 
     @property
     def title(self) -> str:
@@ -94,20 +94,22 @@ class IcsCalendarConnector(ContextConnector):
     def is_configured(self) -> bool:
         from waterloo import config as cfg
 
-        return bool(cfg.ical_path() or cfg.ical_url())
+        return bool(cfg.ical_url() or cfg.resolved_local_ics_path())
 
     def fetch_summary(self) -> str:
         from waterloo import config as cfg
 
-        path = cfg.ical_path()
+        local = cfg.resolved_local_ics_path()
         url = cfg.ical_url()
-        if not path and not url:
+        path_str = str(local) if local else None
+        if not path_str and not url:
             return (
-                "Calendar not configured. Set WATERLOO_ICAL_PATH (local .ics file) "
-                "or WATERLOO_ICAL_URL (HTTPS)."
+                "Calendar not configured. Place calendar.ics under "
+                f"{cfg.workspace_root() / 'ical'} or set WATERLOO_ICAL_PATH or "
+                "WATERLOO_ICAL_URL (HTTPS)."
             )
         try:
-            data = _load_ics_bytes(path, url, timeout=cfg.ical_fetch_timeout())
+            data = _load_ics_bytes(path_str, url, timeout=cfg.ical_fetch_timeout())
         except Exception as e:
             msg = redact_secrets(str(e))
             log.info("Calendar fetch failed: %s", msg)

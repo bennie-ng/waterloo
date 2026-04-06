@@ -3,27 +3,75 @@
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
 
 
-def default_data_dir() -> Path:
-    """User-writable data directory (macOS Application Support, else XDG-style)."""
-    home = Path.home()
-    if sys.platform == "darwin":
-        return home / "Library" / "Application Support" / "waterloo"
-    return home / ".local" / "share" / "waterloo"
+def workspace_root() -> Path:
+    """
+    Single workspace root (defaults to ~/.waterloo).
+
+    Override with WATERLOO_WORKSPACE. Subdirectories: data/, sandbox/, ical/.
+    """
+    raw = os.environ.get("WATERLOO_WORKSPACE", "").strip()
+    if raw:
+        root = Path(raw).expanduser().resolve()
+    else:
+        root = (Path.home() / ".waterloo").resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    return root
 
 
 def data_dir() -> Path:
-    override = os.environ.get("WATERLOO_DATA_DIR")
+    """SQLite and app data: WATERLOO_DATA_DIR or <workspace>/data."""
+    override = os.environ.get("WATERLOO_DATA_DIR", "").strip()
     if override:
-        return Path(override).expanduser()
-    return default_data_dir()
+        p = Path(override).expanduser().resolve()
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+    d = workspace_root() / "data"
+    d.mkdir(parents=True, exist_ok=True)
+    return d.resolve()
 
 
 def db_path() -> Path:
     return data_dir() / "waterloo.db"
+
+
+def tool_root() -> Path:
+    """Sandbox for /read and /run: WATERLOO_TOOL_ROOT or <workspace>/sandbox."""
+    override = os.environ.get("WATERLOO_TOOL_ROOT", "").strip()
+    if override:
+        p = Path(override).expanduser().resolve()
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+    s = workspace_root() / "sandbox"
+    s.mkdir(parents=True, exist_ok=True)
+    return s.resolve()
+
+
+def ical_path() -> str | None:
+    """Explicit WATERLOO_ICAL_PATH override (any path on disk)."""
+    p = os.environ.get("WATERLOO_ICAL_PATH", "").strip()
+    return p if p else None
+
+
+def default_ical_file() -> Path:
+    """Default location for calendar.ics: <workspace>/ical/calendar.ics (dir created)."""
+    ical_dir = workspace_root() / "ical"
+    ical_dir.mkdir(parents=True, exist_ok=True)
+    return (ical_dir / "calendar.ics").resolve()
+
+
+def resolved_local_ics_path() -> Path | None:
+    """
+    Local .ics file to use: env path if set, else default file if it exists.
+    """
+    if p := ical_path():
+        return Path(p).expanduser().resolve()
+    default = default_ical_file()
+    if default.is_file():
+        return default
+    return None
 
 
 def ollama_base() -> str:
@@ -79,11 +127,6 @@ def agent_max_steps() -> int:
         return max(1, int(os.environ.get("WATERLOO_AGENT_MAX_STEPS", "8")))
     except ValueError:
         return 8
-
-
-def ical_path() -> str | None:
-    p = os.environ.get("WATERLOO_ICAL_PATH", "").strip()
-    return p if p else None
 
 
 def ical_url() -> str | None:

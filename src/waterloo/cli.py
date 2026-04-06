@@ -25,8 +25,12 @@ from waterloo.memory import (
 from waterloo.providers import ChatProvider, OllamaProvider, OpenAICompatibleProvider
 from waterloo.router import Mode, decide_route
 from waterloo import tools as toolsvc
+from waterloo.connectors import IcsCalendarConnector, MailStubConnector
 
 log = logging.getLogger("waterloo")
+
+_calendar_connector = IcsCalendarConnector()
+_mail_connector = MailStubConnector()
 
 SYSTEM_PERSONA = (
     "You are Waterloo, a concise and capable terminal assistant inspired by a JARVIS-style aide. "
@@ -58,6 +62,12 @@ def _check_cloud(key: str | None) -> tuple[bool, str]:
     if not key:
         return False, "OPENAI_API_KEY not set"
     return True, "OPENAI_API_KEY present"
+
+
+def _check_calendar() -> tuple[bool, str]:
+    if _calendar_connector.is_configured():
+        return True, "ICS calendar configured (path or URL)"
+    return False, "ICS calendar not configured (WATERLOO_ICAL_PATH / WATERLOO_ICAL_URL)"
 
 
 def build_system_content(memory_snippets: list[str]) -> str:
@@ -120,7 +130,9 @@ def run_repl() -> int:
                 console.print(
                     "[bold]Commands[/bold]\n"
                     "/mode local|cloud|auto — routing\n"
-                    "/health — providers\n"
+                    "/health — providers and connectors\n"
+                    "/calendar — upcoming events from ICS (see README)\n"
+                    "/mail — mail connector status (stub)\n"
                     "/read <path> — read a UTF-8 file under ~/waterloo-ws (or WATERLOO_TOOL_ROOT)\n"
                     "/run <command> — run allowlisted command (confirm unless WATERLOO_AUTO_APPROVE_TOOLS=1)\n"
                     "/remember <text> — save a note\n"
@@ -144,8 +156,22 @@ def run_repl() -> int:
             if cmd == "/health":
                 ok_o, msg_o = _check_ollama(ollama)
                 ok_c, msg_c = _check_cloud(cloud_key)
+                ok_cal, msg_cal = _check_calendar()
                 console.print(f"{'[green]OK[/green]' if ok_o else '[red]NO[/red]'} {msg_o}")
                 console.print(f"{'[green]OK[/green]' if ok_c else '[red]NO[/red]'} {msg_c}")
+                console.print(f"{'[green]OK[/green]' if ok_cal else '[dim]NO[/dim]'} {msg_cal}")
+                continue
+
+            if cmd == "/calendar":
+                text = _calendar_connector.fetch_summary()
+                console.print(Panel(text, title="calendar", border_style="cyan"))
+                continue
+
+            if cmd == "/mail":
+                text = _mail_connector.fetch_summary()
+                configured = _mail_connector.is_configured()
+                style = "green" if configured else "yellow"
+                console.print(Panel(text, title="mail", border_style=style))
                 continue
 
             if cmd == "/remember":

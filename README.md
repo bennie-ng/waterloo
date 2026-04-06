@@ -49,7 +49,9 @@ python -m waterloo
 |--------|-------------|
 | `/help` | Show help |
 | `/mode local\|cloud\|auto` | Force provider or automatic routing |
-| `/health` | Check Ollama and cloud configuration |
+| `/health` | Check Ollama, cloud, and ICS calendar configuration |
+| `/calendar` | Show upcoming events from a configured `.ics` file or URL |
+| `/mail` | Mail connector status (stub; OAuth not implemented yet) |
 | `/read <path>` | Read a UTF-8 file under `WATERLOO_TOOL_ROOT` (see tools below) |
 | `/run <command>` | Run one allowlisted command (prompts unless auto-approved) |
 | `/remember <text>` | Store an opt-in long-term memory note |
@@ -78,6 +80,17 @@ In **auto** mode, messages containing sensitive keywords (for example `password`
 | `WATERLOO_ALLOW_COMMANDS` | Comma-separated list of allowed command **first tokens** for `/run` (default: `git,ls,pwd,which,echo,wc,head`) |
 | `WATERLOO_TOOLS_LOCAL_ONLY` | If `1` (default), `/read` and `/run` only when `/mode local` |
 | `WATERLOO_AUTO_APPROVE_TOOLS` | If `1`, skip the confirmation prompt before `/run` |
+| `WATERLOO_ICAL_PATH` | Path to a local iCalendar `.ics` file (optional; alternative to URL) |
+| `WATERLOO_ICAL_URL` | HTTPS URL to fetch an `.ics` feed (optional; `https://` only) |
+| `WATERLOO_ICAL_TIMEOUT` | HTTP timeout seconds for `WATERLOO_ICAL_URL` (default `30`) |
+
+## Context connectors
+
+Read-only **calendar** via **ICS**: set `WATERLOO_ICAL_PATH` or `WATERLOO_ICAL_URL`, then use `/calendar`. Shows non-recurring `VEVENT`s in the next **14 days** (up to **20** events). Events with `RRULE` are skipped until recurrence support is added.
+
+**Privacy:** subscription URLs often contain secret tokens. Do not commit them; prefer environment variables or a local shell export.
+
+**Mail** is a **stub** (`/mail`): OAuth/API mail is not implemented yet; the command documents future intent.
 
 ## Phase 2 tools (guarded)
 

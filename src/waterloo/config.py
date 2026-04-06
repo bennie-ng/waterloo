@@ -66,3 +66,20 @@ def tools_local_only() -> bool:
 def auto_approve_tools() -> bool:
     """When True, skip the y/n prompt before /run."""
     return os.environ.get("WATERLOO_AUTO_APPROVE_TOOLS", "0").strip() in {"1", "true", "yes"}
+
+
+def ical_path() -> str | None:
+    p = os.environ.get("WATERLOO_ICAL_PATH", "").strip()
+    return p if p else None
+
+
+def ical_url() -> str | None:
+    u = os.environ.get("WATERLOO_ICAL_URL", "").strip()
+    return u if u else None
+
+
+def ical_fetch_timeout() -> float:
+    try:
+        return float(os.environ.get("WATERLOO_ICAL_TIMEOUT", "30"))
+    except ValueError:
+        return 30.0

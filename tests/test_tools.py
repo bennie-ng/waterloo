@@ -52,6 +52,16 @@ def test_given_tools_local_only_disabled_when_mode_cloud_then_permitted():
     assert t.tools_permitted_for_mode("cloud", tools_local_only=False) is True
 
 
+def test_given_no_tool_root_env_when_tool_root_then_home_waterloo_ws(monkeypatch, tmp_path):
+    """Given WATERLOO_TOOL_ROOT unset, when tool_root(), then ~/waterloo-ws under HOME."""
+    monkeypatch.delenv("WATERLOO_TOOL_ROOT", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    got = t.tool_root()
+    expected = (tmp_path / "waterloo-ws").resolve()
+    assert got == expected
+    assert got.is_dir()
+
+
 def test_given_echo_command_when_run_allowlisted_then_stdout():
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)

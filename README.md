@@ -73,13 +73,15 @@ In **auto** mode, messages containing sensitive keywords (for example `password`
 | `WATERLOO_MODE` | Initial mode: `local` (default), `auto`, or `cloud` |
 | `WATERLOO_FALLBACK_CLOUD` | If `1`, use cloud when local fails in `auto` for sensitive prompts |
 | `WATERLOO_DATA_DIR` | Override data directory |
-| `WATERLOO_TOOL_ROOT` | Directory boundary for `/read` paths and working directory for `/run` (default: `$HOME`) |
+| `WATERLOO_TOOL_ROOT` | Directory boundary for `/read` paths and working directory for `/run` (default: `~/waterloo-ws`, created if missing) |
 | `WATERLOO_MAX_READ_BYTES` | Max bytes for `/read` (default `262144`) |
 | `WATERLOO_ALLOW_COMMANDS` | Comma-separated list of allowed command **first tokens** for `/run` (default: `git,ls,pwd,which,echo,wc,head`) |
 | `WATERLOO_TOOLS_LOCAL_ONLY` | If `1` (default), `/read` and `/run` only when `/mode local` |
 | `WATERLOO_AUTO_APPROVE_TOOLS` | If `1`, skip the confirmation prompt before `/run` |
 
 ## Phase 2 tools (guarded)
+
+Default workspace folder for `/read` and `/run` is **`~/waterloo-ws`** (unless you set `WATERLOO_TOOL_ROOT`). The app creates that directory on demand if it does not exist.
 
 - **`/read`**: resolves the path to stay under `WATERLOO_TOOL_ROOT`, then reads a UTF-8 file up to `WATERLOO_MAX_READ_BYTES`.
 - **`/run`**: runs a single argv via `subprocess` with **no shell** (`shell=False`). The first token after parsing must be in `WATERLOO_ALLOW_COMMANDS`. You get a **y/n** prompt unless `WATERLOO_AUTO_APPROVE_TOOLS=1`.

@@ -12,11 +12,16 @@ class ToolError(Exception):
     """User-facing tool failure."""
 
 
+_DEFAULT_WORKSPACE_DIRNAME = "waterloo-ws"
+
+
 def tool_root() -> Path:
     raw = os.environ.get("WATERLOO_TOOL_ROOT", "").strip()
     if raw:
         return Path(raw).expanduser().resolve()
-    return Path.home().resolve()
+    root = (Path.home() / _DEFAULT_WORKSPACE_DIRNAME).resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    return root
 
 
 def max_read_bytes() -> int:

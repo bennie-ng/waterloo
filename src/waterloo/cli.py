@@ -121,7 +121,7 @@ def run_repl() -> int:
                     "[bold]Commands[/bold]\n"
                     "/mode local|cloud|auto — routing\n"
                     "/health — providers\n"
-                    "/read <path> — read a UTF-8 file under WATERLOO_TOOL_ROOT\n"
+                    "/read <path> — read a UTF-8 file under ~/waterloo-ws (or WATERLOO_TOOL_ROOT)\n"
                     "/run <command> — run allowlisted command (confirm unless WATERLOO_AUTO_APPROVE_TOOLS=1)\n"
                     "/remember <text> — save a note\n"
                     "/memories — list notes\n"
